@@ -30,13 +30,12 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <pybind11/pybind11.h>
-
+#include </Users/mdiener/Work/emirge/miniforge3/envs/ceesd/lib/python3.11/site-packages/nanobind/include/nanobind/nanobind.h>
 
 // TODO: flow.h
 // TODO: better error reporting
 
-namespace py = pybind11;
+namespace py = nanobind;
 
 namespace isl
 {

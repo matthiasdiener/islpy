@@ -893,7 +893,7 @@ def check_pybind11():
         print(DASH_SEPARATOR)
 
         from aksetup_helper import count_down_delay
-        count_down_delay(delay=10)
+        count_down_delay(delay=1)
 
 
 # {{{ (modified) boilerplate from https://github.com/pybind/python_example/blob/2ed5a68759cd6ff5d2e5992a91f08616ef457b5c/setup.py  # noqa
