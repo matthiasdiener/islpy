@@ -820,7 +820,7 @@ def get_callback(cb_name, cb):
     return """
         static %(ret_type)s %(cb_name)s(%(input_args)s)
         {
-            py::object py_cb = py::reinterpret_borrow<py::object>(
+            py::object py_cb = py::borrow<py::object>(
                 (PyObject *) c_arg_user);
             try
             {
@@ -828,7 +828,7 @@ def get_callback(cb_name, cb):
               py::object retval = py_cb(%(passed_args)s);
               %(post_call)s
             }
-            catch (py::error_already_set &err)
+            catch (py::python_error &err)
             {
               std::cout << "[islpy warning] A Python exception occurred in "
                 "a call back function, ignoring:" << std::endl;
@@ -1332,7 +1332,7 @@ def write_wrapper(outf, meth):
             and meth.name == "get_user"):
 
         body.append("""
-            return py::reinterpret_borrow<py::object>((PyObject *) result);
+            return py::borrow<py::object>((PyObject *) result);
             """)
         ret_descr = "a user-specified python object"
         processed_return_type = "py::object"

@@ -1,8 +1,8 @@
 #include "wrap_isl.hpp"
 
-void islpy_expose_part1(py::module &m);
-void islpy_expose_part2(py::module &m);
-void islpy_expose_part3(py::module &m);
+void islpy_expose_part1(py::module_ &m);
+void islpy_expose_part2(py::module_ &m);
+void islpy_expose_part3(py::module_ &m);
 
 namespace isl
 {
@@ -10,24 +10,24 @@ namespace isl
 }
 
 
-PYBIND11_MODULE(_isl, m)
+NB_MODULE(_isl, m)
 {
-  py::options options;
-  options.disable_function_signatures();
+  // py::options options;
+  // options.disable_function_signatures();
 
-  static py::exception<isl::error> ISLError(m, "Error", nullptr);
-  py::register_exception_translator(
-        [](std::exception_ptr p)
-        {
-          try
-          {
-            if (p) std::rethrow_exception(p);
-          }
-          catch (isl::error &err)
-          {
-            ISLError(err.what());
-          }
-        });
+  // static py::exception<isl::error> ISLError(m, "Error", NULL);
+  // py::register_exception_translator(
+  //       [](std::exception_ptr p)
+  //       {
+  //         try
+  //         {
+  //           if (p) std::rethrow_exception(p);
+  //         }
+  //         catch (isl::error &err)
+  //         {
+  //           ISLError(err.what());
+  //         }
+  //       });
 
   // py::docstring_options doc_opt(true, false, false);
 
