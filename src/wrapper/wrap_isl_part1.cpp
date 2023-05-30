@@ -37,7 +37,7 @@ void islpy_expose_part1(py::module_ &m)
                  {
                    try
                    {
-                     return new isl::ctx(result);
+                     new(self) isl::ctx(result);
                    }
                    catch (...)
                    {
