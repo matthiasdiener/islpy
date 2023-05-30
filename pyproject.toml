@@ -1,3 +1,14 @@
 [tool.cibuildwheel]
 
 skip = "*-win-* [cp]p3[67]-*"
+
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel>=0.34.2",
+    "cmake>=3.18<=3.22",
+    "scikit-build",
+    "nanobind",
+    "make",
+]
+build-backend = "setuptools.build_meta"

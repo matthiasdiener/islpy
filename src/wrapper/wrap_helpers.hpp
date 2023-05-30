@@ -1,7 +1,7 @@
 #ifndef PYCUDA_WRAP_HELPERS_HEADER_SEEN
 #define PYCUDA_WRAP_HELPERS_HEADER_SEEN
 
-#include </Users/mdiener/Work/emirge/miniforge3/envs/ceesd/lib/python3.11/site-packages/nanobind/include/nanobind/nanobind.h>
+#include <nanobind/nanobind.h>
 
 namespace py = nanobind;
 

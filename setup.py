@@ -24,10 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-from aksetup_helper import (
-        check_pybind11, get_pybind_include,
-        get_config, setup, check_git_submodules, Extension,
-        PybindBuildExtCommand)
+from skbuild import setup
+import sys
 
 
 def get_config_schema():
@@ -99,26 +97,44 @@ class Hooked_compile:  # noqa: N801
         return result
 
 
-class IslPyBuildExtCommand(PybindBuildExtCommand):
-    def __getattribute__(self, name):
-        if name == "compiler":
-            compiler = PybindBuildExtCommand.__getattribute__(self, name)
-            if compiler is not None:
-                orig__compile = compiler._compile
-                if not isinstance(orig__compile, Hooked_compile):
-                    compiler._compile = Hooked_compile(orig__compile, compiler)
-            return compiler
-        else:
-            return PybindBuildExtCommand.__getattribute__(self, name)
+# class IslPyBuildExtCommand(PybindBuildExtCommand):
+#     def __getattribute__(self, name):
+#         if name == "compiler":
+#             compiler = PybindBuildExtCommand.__getattribute__(self, name)
+#             if compiler is not None:
+#                 orig__compile = compiler._compile
+#                 if not isinstance(orig__compile, Hooked_compile):
+#                     compiler._compile = Hooked_compile(orig__compile, compiler)
+#             return compiler
+#         else:
+#             return PybindBuildExtCommand.__getattribute__(self, name)
 
 # }}}
 
 
 def main():
-    check_pybind11()
+    from skbuild import setup
+    import nanobind  # noqa: F401
+    from setuptools import find_packages
+
+    # {{{ import aksetup_helper bits
+
+    prev_path = sys.path[:]
+    # FIXME skbuild seems to remove this. Why?
+    sys.path.append(".")
+
+    from aksetup_helper import get_config, check_git_submodules
+    from gen_wrap import gen_wrapper
+
+    sys.path = prev_path
+
+    # }}}
+
     check_git_submodules()
 
     conf = get_config(get_config_schema(), warn_about_no_config=False)
+
+    cmake_args = []
 
     CXXFLAGS = conf["CXXFLAGS"]  # noqa: N806
 
@@ -129,120 +145,10 @@ def main():
     LIBRARY_DIRS = []  # noqa: N806
     LIBRARIES = []  # noqa: N806
 
-    if conf["USE_SHIPPED_ISL"]:
-        from glob import glob
-        isl_blocklist = [
-                "_templ.c",
-                "_templ_yaml.c",
-                "mp_get",
-                "extract_key.c",
-                "isl_multi_templ.c",
-                "isl_multi_apply_set.c",
-                "isl_multi_gist.c",
-                "isl_multi_coalesce.c",
-                "isl_multi_intersect.c",
-                "isl_multi_floor.c",
-                "isl_multi_apply_union_set.c",
-                "isl_multi_cmp.c",
-                "isl_multi_pw_aff_explicit_domain.c",
-                "isl_multi_hash.c",
-                "isl_multi_dims.c",
-                "isl_multi_explicit_domain.c",
-                "isl_multi_no_explicit_domain.c",
-                "isl_multi_align_set.c",
-                "isl_multi_align_union_set.c",
-                "isl_multi_union_pw_aff_explicit_domain.c",
-                "isl_union_templ.c",
-                "isl_union_multi.c",
-                "isl_union_eval.c",
-                "isl_union_neg.c",
-                "isl_union_single.c",
-                "isl_pw_hash.c",
-                "isl_pw_eval.c",
-                "isl_pw_union_opt.c",
-                "isl_type_check_match_range_multi_val.c",
-                ]
-
-        for fn in glob("isl/*.c"):
-            blacklisted = False
-            for bl in isl_blocklist:
-                if bl in fn:
-                    blacklisted = True
-                    break
-
-            if "no_piplib" in fn:
-                pass
-            elif "piplib" in fn:
-                blacklisted = True
-
-            if "gmp" in fn:
-                if conf["USE_SHIPPED_IMATH"]:
-                    continue
-            if "imath" in fn:
-                if not conf["USE_SHIPPED_IMATH"]:
-                    continue
-
-                if "sioimath" in fn and not conf["USE_IMATH_SIO"]:
-                    continue
-                if "isl_val_imath" in fn and conf["USE_IMATH_SIO"]:
-                    continue
-
-            if "isl_ast_int.c" in fn and conf["USE_SHIPPED_IMATH"]:
-                continue
-
-            inf = open(fn, encoding="utf-8")
-            try:
-                contents = inf.read()
-            finally:
-                inf.close()
-
-            if "int main(" not in contents and not blacklisted:
-                EXTRA_OBJECTS.append(fn)
-
-        conf["ISL_INC_DIR"] = ["isl-supplementary", "isl/include",  "isl"]
-
-        if conf["USE_SHIPPED_IMATH"]:
-            EXTRA_OBJECTS.extend([
-                "isl/imath/imath.c",
-                "isl/imath/imrat.c",
-                "isl/imath/gmp_compat.c",
-                #"isl/imath_wrap/imath.c",
-                #"isl/imath_wrap/imrat.c",
-                #"isl/imath_wrap/gmp_compat.c",
-                ])
-            EXTRA_DEFINES["USE_IMATH_FOR_MP"] = 1
-            if conf["USE_IMATH_SIO"]:
-                EXTRA_DEFINES["USE_SMALL_INT_OPT"] = 1
-
-            conf["ISL_INC_DIR"].append("isl/imath")
-        else:
-            EXTRA_DEFINES["USE_GMP_FOR_MP"] = 1
-
-    else:
-        LIBRARY_DIRS.extend(conf["ISL_LIB_DIR"])
-        LIBRARIES.extend(conf["ISL_LIBNAME"])
+    LIBRARY_DIRS.extend(conf["ISL_LIB_DIR"])
+    LIBRARIES.extend(conf["ISL_LIBNAME"])
 
     wrapper_dirs = conf["ISL_INC_DIR"][:]
-
-    # {{{ configure barvinok
-
-    if conf["USE_BARVINOK"]:
-        if conf["USE_SHIPPED_ISL"]:
-            raise RuntimeError("barvinok wrapper is not compatible with using "
-                    "shipped isl")
-        if conf["USE_SHIPPED_IMATH"]:
-            raise RuntimeError("barvinok wrapper is not compatible with using "
-                    "shipped imath")
-
-        INCLUDE_DIRS.extend(conf["BARVINOK_INC_DIR"])
-        LIBRARY_DIRS.extend(conf["BARVINOK_LIB_DIR"])
-        LIBRARIES.extend(conf["BARVINOK_LIBNAME"])
-
-        wrapper_dirs.extend(conf["BARVINOK_INC_DIR"])
-
-        EXTRA_DEFINES["ISLPY_INCLUDE_BARVINOK"] = 1
-
-    # }}}
 
     INCLUDE_DIRS.extend(conf["ISL_INC_DIR"])
 
@@ -257,11 +163,22 @@ def main():
         version_py = version_f.read()
     exec(compile(version_py, init_filename, "exec"), conf)
 
-    from gen_wrap import gen_wrapper
     gen_wrapper(wrapper_dirs, include_barvinok=conf["USE_BARVINOK"])
 
     with open("README.rst") as readme_f:
         readme = readme_f.read()
+
+    if conf["ISL_INC_DIR"]:
+        cmake_args.append(f"-DISL_INC_DIR:LIST="
+                f"{';'.join(conf['ISL_INC_DIR'])}")
+
+    if conf["ISL_LIB_DIR"]:
+        cmake_args.append(f"-DISL_LIB_DIR:LIST="
+                f"{';'.join(conf['ISL_LIB_DIR'])}")
+
+    cmake_args.append(f"-DISL_LIBRARY={conf['ISL_LIBNAME'][0]}")
+
+    print(f"{cmake_args=}")
 
     setup(name="islpy",
           version=conf["VERSION_TEXT"],
@@ -289,36 +206,34 @@ def main():
               "Topic :: Software Development :: Libraries",
               ],
 
-          packages=["islpy"],
+          packages=find_packages(),
 
           python_requires="~=3.8",
-          setup_requires=[
-              "pybind11",
-              ],
           extras_require={
               "test": ["pytest>=2"],
               },
-          ext_modules=[
-              Extension(
-                  "islpy._isl",
-                  [
-                      "src/wrapper/wrap_isl.cpp",
-                      "src/wrapper/wrap_isl_part1.cpp",
-                      "src/wrapper/wrap_isl_part2.cpp",
-                      "src/wrapper/wrap_isl_part3.cpp",
-                      ] + EXTRA_OBJECTS,
-                  include_dirs=INCLUDE_DIRS + [
-                      get_pybind_include(),
-                      get_pybind_include(user=True)
-                      ],
-                  library_dirs=LIBRARY_DIRS,
-                  libraries=LIBRARIES,
-                  define_macros=list(EXTRA_DEFINES.items()),
-                  extra_compile_args=CXXFLAGS,
-                  extra_link_args=conf["LDFLAGS"],
-                  ),
-              ],
-          cmdclass={"build_ext": IslPyBuildExtCommand},
+          cmake_args=cmake_args,
+        #   ext_modules=[
+        #       Extension(
+        #           "islpy._isl",
+        #           [
+        #               "src/wrapper/wrap_isl.cpp",
+        #               "src/wrapper/wrap_isl_part1.cpp",
+        #               "src/wrapper/wrap_isl_part2.cpp",
+        #               "src/wrapper/wrap_isl_part3.cpp",
+        #               ] + EXTRA_OBJECTS,
+        #           include_dirs=INCLUDE_DIRS + [
+        #               get_pybind_include(),
+        #               get_pybind_include(user=True)
+        #               ],
+        #           library_dirs=LIBRARY_DIRS,
+        #           libraries=LIBRARIES,
+        #           define_macros=list(EXTRA_DEFINES.items()),
+        #           extra_compile_args=CXXFLAGS,
+        #           extra_link_args=conf["LDFLAGS"],
+        #           ),
+        #       ],
+          cmake_install_dir="islpy",
           )
 
 

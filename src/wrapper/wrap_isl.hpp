@@ -30,7 +30,7 @@
 
 #include <iostream>
 #include <stdexcept>
-#include </Users/mdiener/Work/emirge/miniforge3/envs/ceesd/lib/python3.11/site-packages/nanobind/include/nanobind/nanobind.h>
+#include <nanobind/nanobind.h>
 
 // TODO: flow.h
 // TODO: better error reporting
