@@ -1454,7 +1454,7 @@ def write_wrappers(expf, wrapf, methods):
             _, e, _ = sys.exc_info()
             print(f"SKIP (sig not supported: {e}): {meth}")
         else:
-            print ("WRAPPED:", meth)
+            # print("WRAPPED:", meth)
             pass
 
     print("SKIP ({} undocumented methods): {}".format(len(undoc), ", ".join(undoc)))

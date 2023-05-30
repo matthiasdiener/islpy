@@ -5,7 +5,7 @@ namespace isl
 #include "gen-wrap-part2.inc"
 }
 
-void islpy_expose_part2(py::module &m)
+void islpy_expose_part2(py::module_ &m)
 {
   MAKE_WRAP(basic_set, BasicSet);
 
