@@ -23,8 +23,8 @@ nanobind_add_module(
   NB_STATIC # Build static libnanobind (the extension module itself remains a shared library)
   src/wrapper/wrap_isl.cpp
   src/wrapper/wrap_isl_part1.cpp
-  # src/wrapper/wrap_isl_part2.cpp
-  # src/wrapper/wrap_isl_part3.cpp
+  src/wrapper/wrap_isl_part2.cpp
+  src/wrapper/wrap_isl_part3.cpp
 )
 
 target_link_libraries(_isl PRIVATE ${ISL_LIBRARY})
