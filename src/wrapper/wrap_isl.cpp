@@ -15,19 +15,20 @@ NB_MODULE(_isl, m)
   // py::options options;
   // options.disable_function_signatures();
 
-  // static py::exception<isl::error> ISLError(m, "Error", NULL);
-  // py::register_exception_translator(
-  //       [](std::exception_ptr p)
-  //       {
-  //         try
-  //         {
-  //           if (p) std::rethrow_exception(p);
-  //         }
-  //         catch (isl::error &err)
-  //         {
-  //           ISLError(err.what());
-  //         }
-  //       });
+  static py::exception<isl::error> ISLError(m, "Error");
+
+  py::register_exception_translator(
+      [](const std::exception_ptr &p, void * /* unused */)
+      {
+        try
+        {
+          std::rethrow_exception(p);
+        }
+        catch (const isl::error &e)
+        {
+          ISLError(e.what());
+        }
+      });
 
   // py::docstring_options doc_opt(true, false, false);
 
