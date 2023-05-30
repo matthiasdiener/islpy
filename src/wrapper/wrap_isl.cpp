@@ -183,8 +183,8 @@ NB_MODULE(_isl, m)
   ADD_MACRO_ATTR(cls_schedule_algorithm, ISL_SCHEDULE_ALGORITHM_, FEAUTRIER);
 
   islpy_expose_part1(m);
-  islpy_expose_part2(m);
-  islpy_expose_part3(m);
+  // islpy_expose_part2(m);
+  // islpy_expose_part3(m);
 
   py::implicitly_convertible<isl::basic_set, isl::set>();
   py::implicitly_convertible<isl::set, isl::union_set>();
