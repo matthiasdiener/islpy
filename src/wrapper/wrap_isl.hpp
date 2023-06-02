@@ -30,6 +30,8 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <unordered_map>
+#include <memory>
 #include <nanobind/nanobind.h>
 
 // TODO: flow.h
