@@ -193,6 +193,8 @@ ALL_CLASSES = [Context, IdList, ValList, BasicSetList, BasicMapList, SetList,
         Flow, Restriction, UnionAccessInfo, UnionFlow, AstExpr, AstNode,
         AstPrintOptions, AstBuild]
 
+upcast_dict = {}
+
 # }}}
 
 
@@ -925,8 +927,21 @@ def _add_functionality():
         # loop to the next.
 
         def wrapper(basic_instance, *args, **kwargs):
+            global upcast_dict
+            from immutables import Map
+
+            key = (id(basic_instance), tuple(arg for arg in args), Map(kwargs))
+
             try:
-                return basic_method(basic_instance, *args, **kwargs)
+                r = upcast_dict[key]
+                return r
+            except KeyError:
+                pass
+
+            try:
+                r = basic_method(basic_instance, *args, **kwargs)
+                upcast_dict[key] = r
+                return r
             except TypeError:
                 pass
 
@@ -974,7 +989,7 @@ def _add_functionality():
                         basic_class, method_name,
                         update_wrapper(wrapper, basic_method))
             else:
-                # method does not yet exists in basic class
+                # method does not yet exist in basic class
 
                 wrapper = make_new_upcast_wrapper(special_method, upcast_method)
                 setattr(
