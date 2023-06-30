@@ -193,7 +193,7 @@ ALL_CLASSES = [Context, IdList, ValList, BasicSetList, BasicMapList, SetList,
         Flow, Restriction, UnionAccessInfo, UnionFlow, AstExpr, AstNode,
         AstPrintOptions, AstBuild]
 
-upcast_dict = {}
+registered = False
 
 # }}}
 
@@ -926,22 +926,32 @@ def _add_functionality():
         # are not changed from one iteration of the enclosing for
         # loop to the next.
 
+        upcast_dict = {}
+
+        def print_dict():
+            print(len(upcast_dict))
+
+            for k, v in upcast_dict.items():
+                print("  ",k,  len(v))
+
+        global registered
+        if not registered:
+            import atexit
+            atexit.register(print_dict)
+            registered = True
+
         def wrapper(basic_instance, *args, **kwargs):
-            global upcast_dict
             from immutables import Map
+            import traceback
+
+            tb = traceback.extract_stack()
 
             key = (id(basic_instance), tuple(arg for arg in args), Map(kwargs))
 
-            try:
-                r = upcast_dict[key]
-                return r
-            except KeyError:
-                pass
+            upcast_dict.setdefault(key, []).append(tb)
 
             try:
-                r = basic_method(basic_instance, *args, **kwargs)
-                upcast_dict[key] = r
-                return r
+                return basic_method(basic_instance, *args, **kwargs)
             except TypeError:
                 pass
 
