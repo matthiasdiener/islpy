@@ -903,6 +903,8 @@ def _add_functionality():
     Val.__str__ = Val.to_str
     Val.to_python = val_to_python
 
+    upcast_dict = {}
+
     # }}}
 
     # {{{ add automatic 'self' upcasts
@@ -926,13 +928,27 @@ def _add_functionality():
         # are not changed from one iteration of the enclosing for
         # loop to the next.
 
-        upcast_dict = {}
-
         def print_dict():
-            print(len(upcast_dict))
+            loc_dict = {}
+            print("TOTAL", len(upcast_dict))
 
-            for k, v in upcast_dict.items():
-                print("  ",k,  len(v))
+            def find_loc(tb):
+                from os.path import dirname
+                for frame in reversed(tb):
+                    frame_dir = dirname(frame.filename)
+                    if not frame_dir.endswith("islpy"):
+                        return frame.filename + ":" + str(frame.lineno)
+
+                return None
+
+            for k in sorted(upcast_dict, key=lambda k: len(upcast_dict[k]), reverse=True):
+                for ss in upcast_dict[k]:
+                    l = find_loc(ss)
+                    loc_dict.setdefault(l, 0)
+                    loc_dict[l] += 1
+
+            for k in sorted(loc_dict, key=lambda k: loc_dict[k], reverse=True):
+                print(k, loc_dict[k])
 
         global registered
         if not registered:
