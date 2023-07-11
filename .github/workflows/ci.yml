@@ -96,7 +96,7 @@ jobs:
     downstream_tests:
         strategy:
             matrix:
-                downstream_project: [loopy]
+                downstream_project: [loopy, mirgecom]
         name: Tests for downstream project ${{ matrix.downstream_project }}
         runs-on: ubuntu-latest
         steps:
@@ -108,20 +108,7 @@ jobs:
                 curl -L -O https://tiker.net/ci-support-v0
                 . ./ci-support-v0
 
-                git clone "https://github.com/inducer/$DOWNSTREAM_PROJECT.git"
-                cd "$DOWNSTREAM_PROJECT"
-                echo "*** $DOWNSTREAM_PROJECT version: $(git rev-parse --short HEAD)"
-
-                edit_requirements_txt_for_downstream_in_subdir
-                sed -i '/islpy/ d' .test-conda-env-py3.yml
-
-                export CONDA_ENVIRONMENT=.test-conda-env-py3.yml
-
-                # Avoid slow or complicated tests in downstream projects
-                export PYTEST_ADDOPTS="-k 'not (slowtest or octave or mpi)'"
-
-                build_py_project_in_conda_env
-                test_py_project
+                test_downstream "$DOWNSTREAM_PROJECT"
 
     barvinok:
         name: "Test barvinok build script"
