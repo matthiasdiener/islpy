@@ -193,6 +193,8 @@ ALL_CLASSES = [Context, IdList, ValList, BasicSetList, BasicMapList, SetList,
         Flow, Restriction, UnionAccessInfo, UnionFlow, AstExpr, AstNode,
         AstPrintOptions, AstBuild]
 
+registered = False
+
 # }}}
 
 
@@ -901,6 +903,8 @@ def _add_functionality():
     Val.__str__ = Val.to_str
     Val.to_python = val_to_python
 
+    upcast_dict = {}
+
     # }}}
 
     # {{{ add automatic 'self' upcasts
@@ -924,7 +928,44 @@ def _add_functionality():
         # are not changed from one iteration of the enclosing for
         # loop to the next.
 
+        def print_dict():
+            loc_dict = {}
+            print("TOTAL keys:", len(upcast_dict), "calls:", sum([len(upcast_dict[k]) for k in upcast_dict.keys()]))
+
+            def find_loc(tb):
+                from os.path import dirname
+                for frame in reversed(tb):
+                    frame_dir = dirname(frame.filename)
+                    if not frame_dir.endswith("islpy"):
+                        return frame.filename + ":" + str(frame.lineno)
+
+                return None
+
+            for k in sorted(upcast_dict, key=lambda k: len(upcast_dict[k]), reverse=True):
+                for ss in upcast_dict[k]:
+                    l = find_loc(ss)
+                    loc_dict.setdefault(l, 0)
+                    loc_dict[l] += 1
+
+            for k in sorted(loc_dict, key=lambda k: loc_dict[k], reverse=True):
+                print(k, loc_dict[k])
+
+        global registered
+        if not registered:
+            import atexit
+            atexit.register(print_dict)
+            registered = True
+
         def wrapper(basic_instance, *args, **kwargs):
+            from immutables import Map
+            import traceback
+
+            tb = traceback.extract_stack()
+
+            key = (id(basic_instance), tuple(arg for arg in args), Map(kwargs))
+
+            upcast_dict.setdefault(key, []).append(tb)
+
             try:
                 return basic_method(basic_instance, *args, **kwargs)
             except TypeError:
@@ -974,7 +1015,7 @@ def _add_functionality():
                         basic_class, method_name,
                         update_wrapper(wrapper, basic_method))
             else:
-                # method does not yet exists in basic class
+                # method does not yet exist in basic class
 
                 wrapper = make_new_upcast_wrapper(special_method, upcast_method)
                 setattr(
