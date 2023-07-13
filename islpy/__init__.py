@@ -930,7 +930,7 @@ def _add_functionality():
 
         def print_dict():
             loc_dict = {}
-            print("TOTAL", len(upcast_dict))
+            print("TOTAL keys:", len(upcast_dict), "calls:", sum([len(upcast_dict[k]) for k in upcast_dict.keys()]))
 
             def find_loc(tb):
                 from os.path import dirname
