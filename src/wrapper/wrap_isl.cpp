@@ -26,7 +26,8 @@ NB_MODULE(_isl, m)
         }
         catch (const isl::error &e)
         {
-          ISLError(e.what());
+          // ISLError(e.what());
+          PyErr_SetString(PyExc_RuntimeError, e.what());
         }
       });
 
