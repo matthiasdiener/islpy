@@ -1309,7 +1309,7 @@ def write_wrapper(outf, meth):
         processed_return_type = "py::object"
         body.append("""
             if (result)
-              return py::cast(std::string(result));
+              return py::cast(result);
             else
               return py::none();
             """)
