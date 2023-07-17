@@ -31,6 +31,5 @@ nanobind_add_module(
 )
 
 target_link_libraries(_isl PRIVATE ${ISL_LIBRARY})
-target_compile_options(_isl PRIVATE -fpermissive)
 
 install(TARGETS _isl LIBRARY DESTINATION .)
