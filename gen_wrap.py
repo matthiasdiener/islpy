@@ -937,9 +937,15 @@ def write_wrapper(outf, meth):
                 passed_args.append(f"strdup({arg.name})")
             else:
                 passed_args.append(arg.name)
-            input_args.append(f"{arg.base_type} *{arg.name}")
 
-            docs.append(f":param {arg.name}: string")
+            def _arg_to_const_str(arg: Argument) -> str:
+                if arg.is_const:
+                    return "const "
+                return ""
+
+            input_args.append(f"{_arg_to_const_str(arg)}{arg.base_type} *{arg.name}")
+
+            docs.append(f":param {_arg_to_const_str(arg)}{arg.name}: string")
 
         elif arg.base_type in ["int", "isl_bool"] and arg.ptr == "*":
             if arg.name in ["exact", "tight"]:
