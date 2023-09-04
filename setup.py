@@ -26,6 +26,7 @@ THE SOFTWARE.
 
 # Needed for aksetup to be found
 import sys
+from typing import List, Sequence
 
 sys.path.extend(["."])
 
@@ -71,50 +72,89 @@ def get_config_schema():
         ])
 
 
-# {{{ awful monkeypatching to fix the isl (not islpy) build on Mac/clang
+def _get_isl_sources(use_shipped_imath: bool, use_imath_sio: bool) -> Sequence[str]:
+    extra_objects: List[str] = []
 
-class Hooked_compile:  # noqa: N801
-    def __init__(self, orig__compile, compiler):
-        self.orig__compile = orig__compile
-        self.compiler = compiler
+    from glob import glob
+    isl_blocklist = [
+            "_templ.c",
+            "_templ_yaml.c",
+            "mp_get",
+            "extract_key.c",
+            "isl_multi_templ.c",
+            "isl_multi_apply_set.c",
+            "isl_multi_gist.c",
+            "isl_multi_coalesce.c",
+            "isl_multi_intersect.c",
+            "isl_multi_floor.c",
+            "isl_multi_apply_union_set.c",
+            "isl_multi_cmp.c",
+            "isl_multi_pw_aff_explicit_domain.c",
+            "isl_multi_hash.c",
+            "isl_multi_dims.c",
+            "isl_multi_explicit_domain.c",
+            "isl_multi_no_explicit_domain.c",
+            "isl_multi_align_set.c",
+            "isl_multi_align_union_set.c",
+            "isl_multi_union_pw_aff_explicit_domain.c",
+            "isl_union_templ.c",
+            "isl_union_multi.c",
+            "isl_union_eval.c",
+            "isl_union_neg.c",
+            "isl_union_single.c",
+            "isl_pw_hash.c",
+            "isl_pw_eval.c",
+            "isl_pw_union_opt.c",
+            "isl_type_check_match_range_multi_val.c",
+            ]
 
-    def __call__(self, obj, src, *args, **kwargs):
-        compiler = self.compiler
-        prev_compiler_so = compiler.compiler_so
+    for fn in glob("isl/*.c"):
+        blocklisted = False
+        for bl in isl_blocklist:
+            if bl in fn:
+                blocklisted = True
+                break
 
-        if src.endswith(".c"):
-            # Some C compilers (Apple clang IIRC?) really don't like having C++
-            # flags passed to them.
-            options = [opt for opt in args[2]
-                if "-std=gnu++" not in opt and "-std=c++" not in opt]
+        if "no_piplib" in fn:
+            pass
+        elif "piplib" in fn:
+            blocklisted = True
 
-            import sys
-            # https://github.com/inducer/islpy/issues/39
-            if sys.platform == "darwin":
-                options.append("-Wno-error=implicit-function-declaration")
+        if "gmp" in fn:
+            if use_shipped_imath:
+                continue
+        if "imath" in fn:
+            if not use_shipped_imath:
+                continue
 
-            args = args[:2] + (options,) + args[3:]
+            if "sioimath" in fn and not use_imath_sio:
+                continue
+            if "isl_val_imath" in fn and use_imath_sio:
+                continue
 
+        if "isl_ast_int.c" in fn and use_shipped_imath:
+            continue
+
+        inf = open(fn, encoding="utf-8")
         try:
-            result = self.orig__compile(obj, src, *args, **kwargs)
+            contents = inf.read()
         finally:
-            compiler.compiler_so = prev_compiler_so
-        return result
+            inf.close()
 
+        if "int main(" not in contents and not blocklisted:
+            extra_objects.append(fn)
 
-# class IslPyBuildExtCommand(PybindBuildExtCommand):
-#     def __getattribute__(self, name):
-#         if name == "compiler":
-#             compiler = PybindBuildExtCommand.__getattribute__(self, name)
-#             if compiler is not None:
-#                 orig__compile = compiler._compile
-#                 if not isinstance(orig__compile, Hooked_compile):
-#                     compiler._compile = Hooked_compile(orig__compile, compiler)
-#             return compiler
-#         else:
-#             return PybindBuildExtCommand.__getattribute__(self, name)
+    if use_shipped_imath:
+        extra_objects.extend([
+            "isl/imath/imath.c",
+            "isl/imath/imrat.c",
+            "isl/imath/gmp_compat.c",
+            #"isl/imath_wrap/imath.c",
+            #"isl/imath_wrap/imrat.c",
+            #"isl/imath_wrap/gmp_compat.c",
+            ])
 
-# }}}
+    return extra_objects
 
 
 def main():
@@ -141,19 +181,12 @@ def main():
 
     cmake_args = []
 
-    CXXFLAGS = conf["CXXFLAGS"]  # noqa: N806
-
-    EXTRA_OBJECTS = []  # noqa: N806
-    EXTRA_DEFINES = {}  # noqa: N806
-
     INCLUDE_DIRS = ["src/wrapper"]  # noqa: N806
     LIBRARY_DIRS = []  # noqa: N806
     LIBRARIES = []  # noqa: N806
 
     LIBRARY_DIRS.extend(conf["ISL_LIB_DIR"])
     LIBRARIES.extend(conf["ISL_LIBNAME"])
-
-    wrapper_dirs = conf["ISL_INC_DIR"][:]
 
     INCLUDE_DIRS.extend(conf["ISL_INC_DIR"])
 
@@ -168,22 +201,45 @@ def main():
         version_py = version_f.read()
     exec(compile(version_py, init_filename, "exec"), conf)
 
-    gen_wrapper(wrapper_dirs, include_barvinok=conf["USE_BARVINOK"])
-
     with open("README.rst") as readme_f:
         readme = readme_f.read()
 
-    if conf["ISL_INC_DIR"]:
-        cmake_args.append(f"-DISL_INC_DIR:LIST="
-                f"{';'.join(conf['ISL_INC_DIR'])}")
+    if conf["USE_SHIPPED_ISL"]:
+        isl_inc_dirs = ["isl-supplementary", "isl/include",  "isl"]
 
-    if conf["ISL_LIB_DIR"]:
-        cmake_args.append(f"-DISL_LIB_DIR:LIST="
-                f"{';'.join(conf['ISL_LIB_DIR'])}")
+        if conf["USE_SHIPPED_IMATH"]:
+            cmake_args.append("-DUSE_IMATH_FOR_MP:bool=1")
+            if conf["USE_IMATH_SIO"]:
+                cmake_args.append("-DUSE_IMATH_SIO:bool=1")
 
-    cmake_args.append(f"-DISL_LIBRARY={conf['ISL_LIBNAME'][0]}")
+            isl_inc_dirs.append("isl/imath")
+        else:
+            cmake_args.append("-DUSE_GMP_FOR_MP:bool=1")
 
-    print(f"{cmake_args=}")
+        extra_objects = _get_isl_sources(
+                use_shipped_imath=conf["USE_SHIPPED_IMATH"],
+                use_imath_sio=conf["USE_IMATH_SIO"])
+
+        cmake_args.append(f"-DISL_INC_DIR:LIST={';'.join(isl_inc_dirs)}")
+
+        cmake_args.append(f"-DISL_SOURCES:list={';'.join(extra_objects)}")
+    else:
+        if conf["ISL_INC_DIR"]:
+            cmake_args.append(f"-DISL_INC_DIR:LIST="
+                    f"{';'.join(conf['ISL_INC_DIR'])}")
+
+        if conf["ISL_LIB_DIR"]:
+            cmake_args.append(f"-DISL_LIB_DIR:LIST="
+                    f"{';'.join(conf['ISL_LIB_DIR'])}")
+
+        cmake_args.append(f"-DISL_LIBRARY={conf['ISL_LIBNAME'][0]}")
+
+        with open("config-from-setup-py.cmake", "w") as outf:
+            outf.write(f"list(APPEND ISL_SOURCES)\n")
+
+        isl_inc_dirs = ["ISL_INC_DIR"][:]
+
+    gen_wrapper(isl_inc_dirs, include_barvinok=conf["USE_BARVINOK"])
 
     setup(name="islpy",
           version=conf["VERSION_TEXT"],
@@ -218,26 +274,6 @@ def main():
               "test": ["pytest>=2"],
               },
           cmake_args=cmake_args,
-        #   ext_modules=[
-        #       Extension(
-        #           "islpy._isl",
-        #           [
-        #               "src/wrapper/wrap_isl.cpp",
-        #               "src/wrapper/wrap_isl_part1.cpp",
-        #               "src/wrapper/wrap_isl_part2.cpp",
-        #               "src/wrapper/wrap_isl_part3.cpp",
-        #               ] + EXTRA_OBJECTS,
-        #           include_dirs=INCLUDE_DIRS + [
-        #               get_pybind_include(),
-        #               get_pybind_include(user=True)
-        #               ],
-        #           library_dirs=LIBRARY_DIRS,
-        #           libraries=LIBRARIES,
-        #           define_macros=list(EXTRA_DEFINES.items()),
-        #           extra_compile_args=CXXFLAGS,
-        #           extra_link_args=conf["LDFLAGS"],
-        #           ),
-        #       ],
           cmake_install_dir="islpy",
           )
 

@@ -21,6 +21,9 @@ find_package(nanobind CONFIG REQUIRED)
 include_directories(${ISL_INC_DIR})
 link_directories(${ISL_LIB_DIR})
 
+
+
+
 nanobind_add_module(
   _isl
   NB_STATIC # Build static libnanobind (the extension module itself remains a shared library)
@@ -28,7 +31,20 @@ nanobind_add_module(
   src/wrapper/wrap_isl_part1.cpp
   src/wrapper/wrap_isl_part2.cpp
   src/wrapper/wrap_isl_part3.cpp
+  ${ISL_SOURCES}
 )
+
+if (USE_IMATH_FOR_MP)
+  target_compile_definitions(_isl PRIVATE USE_IMATH_FOR_MP=1)
+endif()
+
+if (USE_IMATH_SIO)
+  target_compile_definitions(_isl PRIVATE USE_SMALL_INT_OPT=1)
+endif()
+
+if (USE_GMP_FOR_MP)
+  target_compile_definitions(_isl PRIVATE USE_GMP_FOR_MP=1)
+endif()
 
 target_link_libraries(_isl PRIVATE ${ISL_LIBRARY})
 
