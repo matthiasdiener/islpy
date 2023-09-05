@@ -229,6 +229,15 @@ def _read_from_str_wrapper(cls, context, s, dims_with_apostrophes):
 def _add_functionality():
     import islpy._isl as _isl  # noqa
 
+    # {{{ dim_type
+
+    def dim_type_reduce(v):
+        return (dim_type, (int(v),))
+
+    dim_type.__reduce__ = dim_type_reduce
+
+    # }}}
+
     # {{{ Context
 
     def context_reduce(self):
