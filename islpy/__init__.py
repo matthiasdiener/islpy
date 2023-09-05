@@ -521,20 +521,6 @@ def _add_functionality():
 
     # {{{ Id
 
-    def id_new(cls, name, user=None, context=None):
-        if context is None:
-            context = DEFAULT_CONTEXT
-
-        result = cls.alloc(context, name, user)
-        result._made_from_python = True
-        return result
-
-    def id_bogus_init(self, name, user=None, context=None):
-        assert self._made_from_python
-        del self._made_from_python
-
-    Id.__new__ = staticmethod(id_new)
-    Id.__init__ = id_bogus_init
     Id.user = property(Id.get_user)
     Id.name = property(Id.get_name)
 

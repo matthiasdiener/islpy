@@ -1131,13 +1131,7 @@ def write_wrapper(outf, meth):
         elif (arg.base_type == "void"
                 and arg.ptr == "*"
                 and arg.name == "user"):
-            body.append(f"Py_INCREF(arg_{arg.name}.ptr());")
-            passed_args.append(f"arg_{arg.name}.ptr()")
-            input_args.append(f"py::object arg_{arg.name}")
-            post_call.append(f"""
-                isl_{meth.cls}_set_free_user(result, my_decref);
-                """)
-            docs.append(f":param {arg.name}: a user-specified Python object")
+            raise SignatureNotSupported("void pointer")
 
         else:
             raise SignatureNotSupported(f"arg type {arg.base_type} {arg.ptr}")

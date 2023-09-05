@@ -116,6 +116,27 @@ void islpy_expose_part1(py::module_ &m)
   MAKE_WRAP(multi_union_pw_aff, MultiUnionPwAff);
 
   MAKE_WRAP(id, Id);
+  wrap_id.def("__init__",
+      [](isl::id *t, const char *name, py::object user, isl::ctx *ctx_wrapper)
+      {
+        isl_ctx *ctx = nullptr;
+        if (ctx_wrapper && ctx_wrapper->is_valid())
+          ctx = ctx_wrapper->m_data;
+        if (!ctx)
+          ctx = isl::get_default_context();
+        if (!ctx)
+          throw isl::error("Id constructor: no context available");
+        Py_INCREF(user.ptr());
+        isl_id *result = isl_id_alloc(ctx, name, user.ptr());
+        isl_id_set_free_user(result, isl::my_decref);
+        if (result)
+          new (t) isl::id(result);
+        else
+          isl::handle_isl_error(ctx, "isl_id_alloc");
+      }, py::arg("name"),
+      py::arg("user").none(true)=py::none(),
+      py::arg("context").none(true)=py::none()
+      );
   wrap_id.def("__eq__", islpy::id_eq, py::arg("other"),
       "__eq__(self, other)\n\n"
       ":param self: :class:`Id`\n"
