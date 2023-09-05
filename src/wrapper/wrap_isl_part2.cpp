@@ -12,16 +12,16 @@ void islpy_expose_part2(py::module_ &m)
   MAKE_WRAP(basic_map, BasicMap);
 
   MAKE_WRAP(set, Set);
-  wrap_set.def(py::init<isl::basic_set const &>());
+  wrap_set.def(py::init_implicit<isl::basic_set const &>());
 
   MAKE_WRAP(map, Map);
-  wrap_map.def(py::init<isl::basic_map const &>());
+  wrap_map.def(py::init_implicit<isl::basic_map const &>());
 
   MAKE_WRAP(union_set, UnionSet);
-  wrap_union_set.def(py::init<isl::set const &>());
+  wrap_union_set.def(py::init_implicit<isl::set const &>());
 
   MAKE_WRAP(union_map, UnionMap);
-  wrap_union_map.def(py::init<isl::map const &>());
+  wrap_union_map.def(py::init_implicit<isl::map const &>());
 
   MAKE_WRAP(point, Point);
 
