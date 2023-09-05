@@ -30,6 +30,19 @@ namespace isl
     }
     throw isl::error(errmsg);
   }
+
+  isl_ctx *get_default_context()
+  {
+    py::module_ mod = py::module_::import_("islpy");
+    py::object ctx_py = mod.attr("DEFAULT_CONTEXT");
+    if (!ctx_py.is_none())
+    {
+      isl::ctx *ctx_wrapper = py::cast<isl::ctx *>(ctx_py);
+      if (ctx_wrapper->is_valid())
+        return ctx_wrapper->m_data;
+    }
+    return nullptr;
+  }
 }
 
 

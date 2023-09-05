@@ -1403,20 +1403,13 @@ def write_exposer(outf, meth, arg_names, doc_str):
         outf.write(f'wrap_{wrap_class}.def("__init__",'
             f"[](isl::{wrap_class} *t, const char *s, isl::ctx *ctx_wrapper)"
             "{"
-            "    if (!ctx_wrapper)"
-            "    {"
-            '        py::module_ mod = py::module_::import_("islpy");'
-            '        py::object ctx_py = mod.attr("DEFAULT_CONTEXT");'
-            "        if (!ctx_py.is_none())"
-            "        {"
-            "            ctx_wrapper = py::cast<isl::ctx *>(ctx_py);"
-            "        }"
-            "    }"
             "    isl_ctx *ctx = nullptr;"
-            "    if (ctx_wrapper->is_valid()) ctx = ctx_wrapper->m_data;"
+            "    if (ctx_wrapper && ctx_wrapper->is_valid())"
+            "        ctx = ctx_wrapper->m_data;"
+            "    if (!ctx) ctx = isl::get_default_context();"
             "    if (!ctx)"
             f'        throw isl::error("from-string conversion of {meth.cls}: "'
-            f'                  "no default context available");'
+            f'                  "no context available");'
             f"   isl_{wrap_class} *result = isl_{meth.cls}_read_from_str(ctx, s);"
             "    if (result)"
             f"       new (t) isl::{wrap_class}(result);"

@@ -42,6 +42,7 @@ namespace py = nanobind;
 namespace isl
 {
   [[noreturn]] void handle_isl_error(isl_ctx *ctx, std::string const &func_name);
+  isl_ctx *get_default_context();
 
   class error : public std::runtime_error
   {
