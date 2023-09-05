@@ -86,6 +86,23 @@ void islpy_expose_part1(py::module_ &m)
 
   MAKE_WRAP(printer, Printer);
   MAKE_WRAP(val, Val);
+  wrap_val.def("__init__",
+      [](isl::val *t, long i, isl::ctx *ctx_wrapper)
+      {
+        isl_ctx *ctx = nullptr;
+        if (ctx_wrapper && ctx_wrapper->is_valid())
+          ctx = ctx_wrapper->m_data;
+        if (!ctx)
+          ctx = isl::get_default_context();
+        if (!ctx)
+          throw isl::error("Val constructor: no context available");
+        isl_val *result = isl_val_int_from_si(ctx, i);
+        if (result)
+          new (t) isl::val(result);
+        else
+          isl::handle_isl_error(ctx, "isl_val_from_si");
+      }, py::arg("i"), py::arg("context").none(true)=py::none()
+      );
 
   MAKE_WRAP(multi_val, MultiVal);
   MAKE_WRAP(vec, Vec);

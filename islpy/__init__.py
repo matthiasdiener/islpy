@@ -817,24 +817,6 @@ def _add_functionality():
 
     # {{{ Val
 
-    def val_new(cls, src, context=None):
-        if context is None:
-            context = DEFAULT_CONTEXT
-
-        if isinstance(src, str):
-            result = cls.read_from_str(context, src)
-        elif isinstance(src, int):
-            result = cls.int_from_si(context, src)
-        else:
-            raise TypeError("'src' must be int or string")
-
-        result._made_from_python = True
-        return result
-
-    def val_bogus_init(self, src, context=None):
-        assert self._made_from_python
-        del self._made_from_python
-
     def val_rsub(self, other):
         return -self + other
 
@@ -850,8 +832,6 @@ def _add_functionality():
 
         return int(self.to_str())
 
-    Val.__new__ = staticmethod(val_new)
-    Val.__init__ = val_bogus_init
     Val.__add__ = Val.add
     Val.__radd__ = Val.add
     Val.__sub__ = Val.sub
