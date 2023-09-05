@@ -1401,25 +1401,28 @@ def write_exposer(outf, meth, arg_names, doc_str):
     if meth.name == "read_from_str":
         assert meth.is_static
         outf.write(f'wrap_{wrap_class}.def("__init__",'
-            f"[](isl::{wrap_class} *t, const char *s)"
+            f"[](isl::{wrap_class} *t, const char *s, isl::ctx *ctx_wrapper)"
             "{"
-            "    isl_ctx *islpy_ctx = nullptr;"
-            '    py::module_ mod = py::module_::import_("islpy");'
-            '    py::object ctx_py = mod.attr("DEFAULT_CONTEXT");'
-            "    if (!ctx_py.is_none())"
+            "    if (!ctx_wrapper)"
             "    {"
-            "        isl::ctx *ctx_wrapper = py::cast<isl::ctx *>(ctx_py);"
-            "        if (ctx_wrapper->is_valid()) islpy_ctx = ctx_wrapper->m_data;"
+            '        py::module_ mod = py::module_::import_("islpy");'
+            '        py::object ctx_py = mod.attr("DEFAULT_CONTEXT");'
+            "        if (!ctx_py.is_none())"
+            "        {"
+            "            ctx_wrapper = py::cast<isl::ctx *>(ctx_py);"
+            "        }"
             "    }"
-            "    if (!islpy_ctx)"
+            "    isl_ctx *ctx = nullptr;"
+            "    if (ctx_wrapper->is_valid()) ctx = ctx_wrapper->m_data;"
+            "    if (!ctx)"
             f'        throw isl::error("from-string conversion of {meth.cls}: "'
             f'                  "no default context available");'
-            f"    isl_{wrap_class} *result = isl_{meth.cls}_read_from_str(islpy_ctx, s);"
+            f"   isl_{wrap_class} *result = isl_{meth.cls}_read_from_str(ctx, s);"
             "    if (result)"
-            f"        new (t) isl::{wrap_class}(result);"
+            f"       new (t) isl::{wrap_class}(result);"
             "    else"
-            f'        isl::handle_isl_error(islpy_ctx, "isl_{meth.cls}_read_from_str");'
-            "});\n")
+            f'       isl::handle_isl_error(ctx, "isl_{meth.cls}_read_from_str");'
+            '}, py::arg("s"), py::arg("context").none(true)=py::none());\n')
 
 # }}}
 
