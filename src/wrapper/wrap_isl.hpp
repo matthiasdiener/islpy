@@ -41,6 +41,8 @@ namespace py = nanobind;
 
 namespace isl
 {
+  [[noreturn]] void handle_isl_error(isl_ctx *ctx, std::string const &func_name);
+
   class error : public std::runtime_error
   {
     public:
@@ -74,7 +76,7 @@ namespace isl
   struct name { WRAP_CLASS_CONTENT(name) }
 
 #define MAKE_CAST_CTOR(name, from_type, cast_func) \
-      name(from_type &data) \
+      name(from_type const &data) \
       : m_data(nullptr) \
       { \
         isl_##from_type *copy = isl_##from_type##_copy(data.m_data); \
@@ -94,7 +96,7 @@ namespace isl
       name(isl_##name *data) \
       : m_data(nullptr) \
       /* passing nullptr is allowed to create a (temporarily invalid) */ \
-      /* instance during unpickling */ \
+      /* instance */ \
       { \
         take_possession_of(data); \
       } \

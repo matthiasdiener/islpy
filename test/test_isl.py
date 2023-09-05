@@ -93,6 +93,8 @@ def test_upcast():
     a = isl.PwAff("[n] -> { [(-1 - floor((-n)/4))] }")
     b = isl.Aff("[n] -> { [(-1 - floor((-n)/4))] }")
 
+    isl.PwAff(b)
+
     assert b.is_equal(a)
     assert a.is_equal(b)
 

@@ -7,6 +7,29 @@ void islpy_expose_part3(py::module_ &m);
 namespace isl
 {
   ctx_use_map_t ctx_use_map;
+
+  [[noreturn]] void handle_isl_error(isl_ctx *ctx, std::string const &func_name)
+  {
+    std::string errmsg = "call to " + func_name + " failed: ";
+    if (ctx)
+    {
+      const char *isl_msg = isl_ctx_last_error_msg(ctx);
+      if (isl_msg)
+        errmsg += isl_msg;
+      else
+        errmsg += "<no message>";
+
+      const char *err_file = isl_ctx_last_error_file(ctx);
+      if (err_file)
+      {
+        errmsg += " in ";
+        errmsg += err_file;
+        errmsg += ":";
+        errmsg += std::to_string(isl_ctx_last_error_line(ctx));
+      }
+    }
+    throw isl::error(errmsg);
+  }
 }
 
 
@@ -187,21 +210,9 @@ NB_MODULE(_isl, m)
   islpy_expose_part2(m);
   islpy_expose_part3(m);
 
-  py::implicitly_convertible<isl::basic_set, isl::set>();
-  py::implicitly_convertible<isl::set, isl::union_set>();
   py::implicitly_convertible<isl::basic_set, isl::union_set>();
 
-  py::implicitly_convertible<isl::basic_map, isl::map>();
-  py::implicitly_convertible<isl::map, isl::union_map>();
   py::implicitly_convertible<isl::basic_map, isl::union_map>();
 
-  py::implicitly_convertible<isl::aff, isl::pw_aff>();
-  py::implicitly_convertible<isl::pw_aff, isl::union_pw_aff>();
-  py::implicitly_convertible<isl::aff, isl::union_pw_aff>();
-
-  py::implicitly_convertible<isl::multi_aff, isl::pw_multi_aff>();
-  py::implicitly_convertible<isl::pw_multi_aff, isl::union_pw_multi_aff>();
   py::implicitly_convertible<isl::multi_aff, isl::union_pw_multi_aff>();
-
-  py::implicitly_convertible<isl::space, isl::local_space>();
 }

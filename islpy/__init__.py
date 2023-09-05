@@ -251,25 +251,6 @@ def _add_functionality():
 
     # {{{ generic initialization, pickling
 
-    def obj_new(cls, s=None, context=None):
-        """Construct a new object from :class:`str` s.
-
-        :arg context: a :class:`islpy.Context` to use. If not supplied, use a
-            global default context.
-        """
-        if not isinstance(s, str):
-            return cls._prev_new(cls)
-
-        if context is None:
-            context = DEFAULT_CONTEXT
-
-        result = cls.read_from_str(context, s)
-        return result
-
-    def obj_bogus_init(self, s, context=None):
-        if not isinstance(s, str) and self._prev_init is not None:
-            self._prev_init(s)
-
     def generic_reduce(self):
         ctx = self.get_ctx()
         prn = Printer.to_str(ctx)
@@ -287,10 +268,6 @@ def _add_functionality():
 
     for cls in ALL_CLASSES:
         if hasattr(cls, "read_from_str"):
-            cls._prev_new = cls.__new__
-            cls.__new__ = obj_new
-            cls._prev_init = getattr(cls, "__init__", None)
-            cls.__init__ = obj_bogus_init
             cls.__reduce__ = generic_reduce
 
     # }}}

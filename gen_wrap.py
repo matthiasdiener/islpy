@@ -1162,28 +1162,7 @@ def write_wrapper(outf, meth):
 
     # {{{ return value processing
 
-    err_handling_body = f"""{{
-                std::string errmsg = "call to isl_{meth.cls}_{meth.name} failed: ";
-                if (islpy_ctx)
-                {{
-                    const char *isl_msg = isl_ctx_last_error_msg(islpy_ctx);
-                    if (isl_msg)
-                        errmsg += isl_msg;
-                    else
-                        errmsg += "<no message>";
-
-                    const char *err_file = isl_ctx_last_error_file(islpy_ctx);
-                    if (err_file)
-                    {{
-                        errmsg += " in ";
-                        errmsg += err_file;
-                        errmsg += ":";
-                        errmsg += std::to_string(isl_ctx_last_error_line(islpy_ctx));
-                    }}
-                }}
-                throw isl::error(errmsg);
-            }}
-            """
+    err_handling_body = f'handle_isl_error(islpy_ctx, "isl_{meth.cls}_{meth.name}");'
 
     if meth.return_base_type == "int" and not meth.return_ptr:
         # {{{ integer return
@@ -1403,8 +1382,6 @@ def write_exposer(outf, meth, arg_names, doc_str):
     if meth.name == "get_hash" and len(meth.args) == 1:
         py_name = "__hash__"
 
-    extra_py_names = []
-
     #if meth.is_static:
     #    doc_str = "(static method)\n" + doc_str
 
@@ -1418,10 +1395,31 @@ def write_exposer(outf, meth, arg_names, doc_str):
 
     wrap_class = CLASS_MAP.get(meth.cls, meth.cls)
 
-    for exp_py_name in [py_name] + extra_py_names:
-        outf.write('wrap_{}.def{}("{}", {}{});\n'.format(
-            wrap_class, "_static" if meth.is_static else "",
-            exp_py_name, func_name, args_str+doc_str_arg))
+    outf.write(f'wrap_{wrap_class}.def{"_static" if meth.is_static else ""}('
+               f'"{py_name}", {func_name}{args_str+doc_str_arg});\n')
+
+    if meth.name == "read_from_str":
+        assert meth.is_static
+        outf.write(f'wrap_{wrap_class}.def("__init__",'
+            f"[](isl::{wrap_class} *t, const char *s)"
+            "{"
+            "    isl_ctx *islpy_ctx = nullptr;"
+            '    py::module_ mod = py::module_::import_("islpy");'
+            '    py::object ctx_py = mod.attr("DEFAULT_CONTEXT");'
+            "    if (!ctx_py.is_none())"
+            "    {"
+            "        isl::ctx *ctx_wrapper = py::cast<isl::ctx *>(ctx_py);"
+            "        if (ctx_wrapper->is_valid()) islpy_ctx = ctx_wrapper->m_data;"
+            "    }"
+            "    if (!islpy_ctx)"
+            f'        throw isl::error("from-string conversion of {meth.cls}: "'
+            f'                  "no default context available");'
+            f"    isl_{wrap_class} *result = isl_{meth.cls}_read_from_str(islpy_ctx, s);"
+            "    if (result)"
+            f"        new (t) isl::{wrap_class}(result);"
+            "    else"
+            f'        isl::handle_isl_error(islpy_ctx, "isl_{meth.cls}_read_from_str");'
+            "});\n")
 
 # }}}
 
