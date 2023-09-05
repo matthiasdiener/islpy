@@ -901,8 +901,7 @@ def _add_functionality():
 
             # Here we're desperately trying to filter out static methods,
             # based on what seems to be a common feature.
-            if any("builtin_function_or_method" in meth_superclass.__name__
-                    for meth_superclass in type(method).__mro__):
+            if type(method).__name__ == "nb_func":
                 return False
 
             return True
