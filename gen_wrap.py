@@ -945,7 +945,7 @@ def write_wrapper(outf, meth):
 
             input_args.append(f"{_arg_to_const_str(arg)}{arg.base_type} *{arg.name}")
 
-            docs.append(f":param {_arg_to_const_str(arg)}{arg.name}: string")
+            docs.append(f":param {arg.name}: string")
 
         elif arg.base_type in ["int", "isl_bool"] and arg.ptr == "*":
             if arg.name in ["exact", "tight"]:
