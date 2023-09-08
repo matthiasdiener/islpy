@@ -239,6 +239,10 @@ def main():
 
         isl_inc_dirs = ["ISL_INC_DIR"][:]
 
+    if conf["CXXFLAGS"]:
+        cmake_args.append(f"-DCMAKE_CXX_FLAGS:STRING="
+                f"{' '.join(conf['CXXFLAGS'])}")
+
     gen_wrapper(isl_inc_dirs, include_barvinok=conf["USE_BARVINOK"])
 
     setup(name="islpy",
