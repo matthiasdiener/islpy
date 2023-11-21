@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.15...3.27)
-project(islpy)
+project(islpy LANGUAGES C CXX)
 find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+
+include(siteconf.cmake)
 
 # Force Release build by default
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -15,11 +17,41 @@ execute_process(
 list(APPEND CMAKE_PREFIX_PATH "${NB_DIR}")
 find_package(nanobind CONFIG REQUIRED)
 
+
+
+if(USE_BARVINOK)
+  if(USE_SHIPPED_ISL)
+    message(FATAL_ERROR "barvinok wrapper is not compatible with using shipped isl")
+  endif()
+  if(USE_SHIPPED_IMATH)
+    message(FATAL_ERROR "barvinok wrapper is not compatible with using shipped imath")
+  endif()
+endif()
+
+set(ISL_SOURCES "")
+
+if(USE_SHIPPED_ISL)
+  # TODO: add check ISL is actually in the directory
+  include(isl_filelist.cmake)
+  set(ISL_INC_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/isl-supplementary;${CMAKE_CURRENT_SOURCE_DIR}/isl/include;${CMAKE_CURRENT_SOURCE_DIR}/isl")
+  list(APPEND ISL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/isl")
+  if(USE_SHIPPED_IMATH)
+    # TODO: add check that imath is actually in the directory
+    list(APPEND ISL_INC_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/isl/imath")
+    list(APPEND ISL_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/isl/imath/imrat.c;
+                             ${CMAKE_CURRENT_SOURCE_DIR}/isl/imath/imath.c;
+                             ${CMAKE_CURRENT_SOURCE_DIR}/isl/imath/gmp_compat.c")
+                             #"isl/imath_wrap/imath.c",
+                             #"isl/imath_wrap/imrat.c",
+                             #"isl/imath_wrap/gmp_compat.c",
+  endif()
+endif()
+
 nanobind_add_module(
   _isl
   NB_STATIC # Build static libnanobind (the extension module itself remains a shared library)
   NOMINSIZE # Optimize for speed, not for size
-  LTO       # Enable LTO
+  LTO # Enable LTO
   src/wrapper/wrap_isl.cpp
   src/wrapper/wrap_isl_part1.cpp
   src/wrapper/wrap_isl_part2.cpp
