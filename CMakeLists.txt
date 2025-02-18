@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.15...3.27)
 project(islpy)
-find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+
+if (CMAKE_VERSION VERSION_LESS 3.18)
+  set(DEV_MODULE Development)
+else()
+  set(DEV_MODULE Development.Module)
+endif()
+
+find_package(Python 3.8 COMPONENTS Interpreter ${DEV_MODULE} REQUIRED)
 
 # Force Release build by default
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
